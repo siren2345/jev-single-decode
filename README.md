@@ -172,6 +172,31 @@ BBQ_ROOT=/path/to/jev-bbq-experiment \\
 python benchmarks/run_bbq.py --count 10000 --output benchmarks/results_bbq_10000.json
 ```
 
+## llama.cpp API server
+
+`server/jev_llama_server.py` provides a small HTTP adapter for a running
+llama.cpp server. It uses llama.cpp's OpenAI-compatible
+`/v1/chat/completions` endpoint with `max_tokens=1` and reads the returned
+`top_logprobs` for the A/B/C decision. The adapter exposes the same Jev-shaped
+request and response at `POST /v1/systemone` (with `/v1/jev` and
+`/v1/choices` as aliases).
+
+Start it after starting llama.cpp:
+
+```bash
+LLAMA_CPP_URL=http://127.0.0.1:8080 \\
+LLAMA_CPP_MODEL=your-model \\
+python server/jev_llama_server.py
+```
+
+The adapter listens on `127.0.0.1:8090` by default. Set `JEV_HOST`, `JEV_PORT`,
+`JEV_TOP_LOGPROBS`, or `LLAMA_TIMEOUT` to change the defaults. It does not
+load model weights itself; llama.cpp remains the inference server.
+
+The configured llama.cpp model must be able to produce A/B/C as candidates in
+the first output token. Reasoning-oriented models that spend the first token
+on hidden reasoning are not suitable for this one-token endpoint.
+
 ## Model substitution
 
 The model is not hard-coded into the project design. Replace the model ID when constructing the judge:
@@ -186,7 +211,8 @@ The replacement model must support a compatible chat template and direct next-to
 
 ```text
 src/jev_single_decode.py       Local Jev-compatible judge
-benchmarks/            Prompt and benchmark scripts
+server/jev_llama_server.py     llama.cpp-backed Jev-compatible HTTP API
+benchmarks/                     Latest BBQ benchmark scripts and result
 ```
 
 ## License

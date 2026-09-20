@@ -30,9 +30,13 @@ Currently not implemented:
 ### Requirements
 
 - Python 3.11+
-- NVIDIA GPU with CUDA support
-- Sufficient VRAM for the selected model
 - PyTorch and Transformers
+- A local causal language model supported by the selected runtime
+
+The reference Transformers implementation currently places the model on
+CUDA, so an NVIDIA GPU with sufficient VRAM is required for that path. The
+llama.cpp API path does not require NVIDIA hardware; it can use any backend
+supported by the installed llama.cpp build, including CPU-only execution.
 
 Install dependencies:
 

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jev-single-decode"
+version = "0.1.0"
+description = "Unofficial local, choice-only Jev-compatible decision API"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "siren2345" }]
+keywords = ["jev", "choice", "typed-decisions", "local-inference", "transformers"]
+dependencies = [
+  "torch>=2.0",
+  "transformers>=4.45",
+  "safetensors>=0.4",
+  "huggingface_hub>=0.20"
+]
+
+[project.urls]
+Repository = "https://github.com/siren2345/jev-single-decode"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["jev_single_decode"]

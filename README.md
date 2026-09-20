@@ -43,10 +43,10 @@ llama-server \\
   --model /path/to/model.gguf \\
   --alias jev-single-decode \\
   --host 127.0.0.1 --port 8080 \\
-  --ctx-size 8192 --parallel 1 \\
+  --ctx-size 40960 --parallel 20 \\
   --gpu-layers 999 --flash-attn on --jinja \\
   --reasoning off --spec-type none \\
-  --batch-size 2048 --ubatch-size 512 \\
+  --batch-size 4096 --ubatch-size 1024 \\
   --cache-type-k q8_0 --cache-type-v q8_0 \\
   --temperature 0 --top-k 0 --top-p 1 --min-p 0 \\
   --predict 1 --metrics --slots --no-ui
@@ -116,6 +116,28 @@ client
 The adapter is intentionally small and uses only the Python standard library.
 llama.cpp remains responsible for model loading, prompt formatting, inference,
 and hardware acceleration.
+
+## Benchmark
+
+Measured on 10,000 deterministic samples (`seed=42`) from
+[`simonmesmith/jev-bbq-experiment`](https://github.com/simonmesmith/jev-bbq-experiment):
+
+| Metric | Result |
+|---|---:|
+| Accuracy | **88.40%** (8,840/10,000) |
+| Ambiguous accuracy | 92.17% (4,625/5,018) |
+| Disambiguated accuracy | 84.60% (4,215/4,982) |
+| Brier score | 0.2191 |
+| ECE (10 bins) | 0.1067 |
+| Throughput | 31.83 requests/s |
+| Mean latency | 628 ms |
+| p50 / p95 latency | 537 / 1,063 ms |
+
+Test configuration: Qwen3-4B-Q4_K_M, RTX 5090, llama.cpp, 20 concurrent
+clients, `--parallel 100`, 2,048 context tokens per slot,
+`--batch-size 2048`, `--ubatch-size 512`, q8 KV cache,
+`cache_prompt=false`, and `top_logprobs=50`. Latency includes both the adapter
+and llama.cpp HTTP boundaries. Results are workload- and hardware-dependent.
 
 ## License
 

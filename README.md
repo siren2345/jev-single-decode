@@ -176,21 +176,6 @@ python benchmarks/run_bbq.py \\
 
 ## llama.cpp API server
 
-`server/jev_llama_server.py` provides a small HTTP adapter for a running
-llama.cpp server. It uses llama.cpp's OpenAI-compatible
-`/v1/chat/completions` endpoint with `max_tokens=1` and reads the returned
-`top_logprobs` for the A/B/C decision. The adapter exposes the same Jev-shaped
-request and response at `POST /v1/systemone` (with `/v1/jev` and
-`/v1/choices` as aliases).
-
-Start it after starting llama.cpp:
-
-```bash
-LLAMA_CPP_URL=http://127.0.0.1:8080 \\
-LLAMA_CPP_MODEL=your-model \\
-python server/jev_llama_server.py
-```
-
 For a dedicated single-decode llama.cpp process, start the official
 `llama-server` binary directly with the relevant options:
 
@@ -212,6 +197,23 @@ The exact binary path can be used instead of `llama-server`. Increase
 `--parallel` only when concurrent API requests are needed. `--batch-size` and
 `--ubatch-size` affect prompt prefill, which is the costly part even though the
 answer decode is only one token.
+
+After llama.cpp is running, start `server/jev_llama_server.py`. It is a small
+HTTP adapter that calls llama.cpp's OpenAI-compatible
+`/v1/chat/completions` endpoint with `max_tokens=1` and reads `top_logprobs` for
+the A/B/C decision:
+
+```bash
+LLAMA_CPP_URL=http://127.0.0.1:8080 \\
+LLAMA_CPP_MODEL=jev-single-decode \\
+python server/jev_llama_server.py
+```
+
+The adapter exposes the Jev-shaped request and response at:
+
+- `POST /v1/systemone`
+- `POST /v1/jev` (alias)
+- `POST /v1/choices` (alias)
 
 The adapter listens on `127.0.0.1:8090` by default. Set `JEV_HOST`, `JEV_PORT`,
 `JEV_TOP_LOGPROBS`, or `LLAMA_TIMEOUT` to change the defaults. It does not

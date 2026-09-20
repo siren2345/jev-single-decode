@@ -168,8 +168,10 @@ Latency depends on prompt length, GPU, dtype, and model. Batch inference is a pl
 Run the benchmark with a local BBQ clone:
 
 ```bash
-BBQ_ROOT=/path/to/jev-bbq-experiment \\
-python benchmarks/run_bbq.py --count 10000 --output benchmarks/results_bbq_10000.json
+python benchmarks/run_bbq.py \\
+  --bbq-root /path/to/jev-bbq-experiment \\
+  --count 10000 \\
+  --output benchmarks/results_bbq_10000.json
 ```
 
 ## llama.cpp API server
@@ -224,7 +226,7 @@ on hidden reasoning are not suitable for this one-token endpoint.
 The model is not hard-coded into the project design. Replace the model ID when constructing the judge:
 
 ```python
-judge = QwenChoiceJudge("your-org/your-causal-model")
+judge = LocalChoiceJudge("your-org/your-causal-model")
 ```
 
 The replacement model must support a compatible chat template and direct next-token scoring for the selected labels.

@@ -189,19 +189,19 @@ LLAMA_CPP_MODEL=your-model \\
 python server/jev_llama_server.py
 ```
 
-For a dedicated single-decode llama.cpp process, use
-`server/start-jev-llama.ps1`. Its preset enables Flash Attention, disables
-reasoning and speculative decoding, uses deterministic sampling, and keeps
-one server slot by default:
+For a dedicated single-decode llama.cpp process, use the portable Python
+launcher `server/start_jev_llama.py`. Its preset enables Flash Attention,
+disables reasoning and speculative decoding, uses deterministic sampling, and
+keeps one server slot by default:
 
-```powershell
-pwsh -File server/start-jev-llama.ps1 `
-  -Model C:\path\to\model.gguf
+```bash
+python server/start_jev_llama.py \\
+  --model /path/to/model.gguf
 ```
 
-Use `-DryRun` first to print the resolved command. The defaults are tuned for
-one-token decisions; increase `-Parallel` only when concurrent API requests
-are needed. `-Batch` and `-UBatch` affect prompt prefill, which is the costly
+The `llama-server` executable must be on `PATH`; use `--executable` to pass a
+custom binary path. Use `--parallel` only when concurrent API requests are
+needed. `--batch` and `--ubatch` affect prompt prefill, which is the costly
 part even though the answer decode is only one token.
 
 The adapter listens on `127.0.0.1:8090` by default. Set `JEV_HOST`, `JEV_PORT`,

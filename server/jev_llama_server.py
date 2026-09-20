@@ -72,7 +72,7 @@ def _llama_choice(messages: list[dict[str, str]]) -> tuple[list[float], dict[str
         "max_tokens": 1,
         "temperature": 0,
         "logprobs": True,
-        "top_logprobs": int(os.environ.get("JEV_TOP_LOGPROBS", "20")),
+        "top_logprobs": int(os.environ.get("JEV_TOP_LOGPROBS", "50")),
         "stream": False,
     }
     request = Request(

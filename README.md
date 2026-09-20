@@ -2,9 +2,9 @@
 
 A small llama.cpp-backed HTTP adapter that exposes a Jev-compatible `choice`
 API. The adapter tests whether a typed choice decision can be served by an
-ordinary causal model using prompt prefill and exactly one output token.
+ordinary causal model using prompt prefill and exactly a single output token.
 
-![Conventional generation repeats decode, while jev-single-decode stops after one decode](assets/prefill_single_decode_pipeline.png)
+![Conventional generation repeats decode, while jev-single-decode stops after a single decode](assets/prefill_single_decode_pipeline.png)
 
 > This project is not affiliated with TypeSafe AI. Jev is a trademark of
 > TypeSafe AI.
@@ -16,7 +16,7 @@ ordinary causal model using prompt prefill and exactly one output token.
 - `POST /v1/jev` and `POST /v1/choices`: aliases
 - `GET /health`: adapter health check
 
-The adapter sends one request per question to llama.cpp's OpenAI-compatible
+The adapter sends a request per question to llama.cpp's OpenAI-compatible
 `/v1/chat/completions` endpoint with `max_tokens=1`. It reads `top_logprobs`
 for the A/B/C answer tokens, renormalizes those three values, and returns
 `choice`, `probabilities`, and `confidence` while preserving the input
@@ -36,9 +36,9 @@ reasoning are not suitable for this endpoint.
 
 ## Start the servers
 
-First start llama.cpp with one-token deterministic decoding. The options below
-are a reference configuration; adjust GPU and context settings for the model
-and hardware:
+First start llama.cpp with single-token deterministic decoding. The options
+below are a reference configuration; adjust GPU and context settings for the
+model and hardware:
 
 ```bash
 llama-server \\

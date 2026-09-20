@@ -2,7 +2,7 @@
 
 The upstream llama.cpp server is expected at LLAMA_CPP_URL (default:
 http://127.0.0.1:8080). This adapter uses /v1/chat/completions with exactly
-one output token and reads the returned top-logprobs for A/B/C.
+a single output token and reads the returned top-logprobs for A/B/C.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def _error(message: str, status: int = 400) -> tuple[int, dict[str, Any]]:
 
 
 def _token_letter(token: str) -> str | None:
-    """Return A/B/C only for a token consisting of one answer letter."""
+    """Return A/B/C only for a token consisting of a single answer letter."""
     cleaned = token.strip().replace("▁", " ").replace("Ġ", " ").strip()
     return cleaned if cleaned in {"A", "B", "C"} else None
 

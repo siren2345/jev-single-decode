@@ -173,9 +173,24 @@ to have confidence near 1.0. The returned probability distribution should not
 be treated as calibrated until a separate calibration split and evaluation are
 added.
 
-The reference implementation uses the original BBQ state without adding an extra system instruction. The 58,492-question dataset has not been run in full; this project intentionally stops at the 100-question validation stage while the implementation is experimental.
+The reference implementation uses the original BBQ state without adding an extra system instruction. The 58,492-question dataset has not been run in full; this project intentionally stops at sampled validation while the implementation is experimental.
 
-### Latency
+### 10,000-question follow-up
+
+A larger seed-42 random sample was also run with the same canonical prompt and model:
+
+| Metric | Result |
+|---|---:|
+| Accuracy | **9,053/10,000 (90.53%)** |
+| Ambiguous accuracy | 4,679/5,018 (93.24%) |
+| Informative accuracy | 4,374/4,982 (87.80%) |
+| Brier score | 0.1828 |
+| ECE (10 bins) | 0.0890 |
+| Mean confidence | 0.9943 |
+| Mean latency | 33.5 ms |
+| p50 / p95 latency | 32.3 / 42.3 ms |
+
+The 10,000-question result is more representative than the initial 100-question result, but it is still a random validation sample rather than a full-dataset evaluation. The row-level output is stored in `benchmarks/results_bbq_10000.json`.
 
 Warm GPU measurement after model loading, batch size 1, 12 sequential questions:
 

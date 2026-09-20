@@ -189,20 +189,27 @@ LLAMA_CPP_MODEL=your-model \\
 python server/jev_llama_server.py
 ```
 
-For a dedicated single-decode llama.cpp process, use the portable Python
-launcher `server/start_jev_llama.py`. Its preset enables Flash Attention,
-disables reasoning and speculative decoding, uses deterministic sampling, and
-keeps one server slot by default:
+For a dedicated single-decode llama.cpp process, start the official
+`llama-server` binary directly with the relevant options:
 
 ```bash
-python server/start_jev_llama.py \\
-  --model /path/to/model.gguf
+llama-server \\
+  --model /path/to/model.gguf \\
+  --alias jev-single-decode \\
+  --host 127.0.0.1 --port 8080 \\
+  --ctx-size 8192 --parallel 1 \\
+  --gpu-layers 999 --flash-attn on --jinja \\
+  --reasoning off --spec-type none \\
+  --batch-size 2048 --ubatch-size 512 \\
+  --cache-type-k q8_0 --cache-type-v q8_0 \\
+  --temperature 0 --top-k 0 --top-p 1 --min-p 0 \\
+  --predict 1 --metrics --slots --no-ui
 ```
 
-The `llama-server` executable must be on `PATH`; use `--executable` to pass a
-custom binary path. Use `--parallel` only when concurrent API requests are
-needed. `--batch` and `--ubatch` affect prompt prefill, which is the costly
-part even though the answer decode is only one token.
+The exact binary path can be used instead of `llama-server`. Increase
+`--parallel` only when concurrent API requests are needed. `--batch-size` and
+`--ubatch-size` affect prompt prefill, which is the costly part even though the
+answer decode is only one token.
 
 The adapter listens on `127.0.0.1:8090` by default. Set `JEV_HOST`, `JEV_PORT`,
 `JEV_TOP_LOGPROBS`, or `LLAMA_TIMEOUT` to change the defaults. It does not

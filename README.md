@@ -153,6 +153,26 @@ Validation uses [`simonmesmith/jev-bbq-experiment`](https://github.com/simonmesm
 | Answer-format instruction moved to user message | 86/100 (86%) |
 | Asking the model to emit `ans0`/`ans1`/`ans2` directly | 43/100 (43%) |
 
+Canonical run metrics:
+
+| Metric | Result |
+|---|---:|
+| Accuracy | **86/100 (86%)** |
+| Ambiguous accuracy | 44/50 (88%) |
+| Informative accuracy | 42/50 (84%) |
+| Brier score | 0.2853 |
+| ECE (10 bins) | 0.1462 |
+| Mean confidence | 0.9932 |
+| Mean confidence on incorrect answers | **~1.0000** |
+| Mean latency | 36.6 ms |
+| p50 / p95 latency | 33.0 / 38.4 ms |
+
+The model is accurate enough to make the experiment interesting, but its raw
+three-token softmax is visibly overconfident: incorrect predictions also tend
+to have confidence near 1.0. The returned probability distribution should not
+be treated as calibrated until a separate calibration split and evaluation are
+added.
+
 The reference implementation uses the original BBQ state without adding an extra system instruction. The 58,492-question dataset has not been run in full; this project intentionally stops at the 100-question validation stage while the implementation is experimental.
 
 ### Latency

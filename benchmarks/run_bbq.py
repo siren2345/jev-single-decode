@@ -1,7 +1,7 @@
-"""Run the canonical 100-question BBQ benchmark locally.
+"""Run the latest BBQ benchmark locally.
 
 Usage:
-  python benchmarks/run_bbq_100.py --bbq-root ../jev-bbq-experiment
+  python benchmarks/run_bbq.py --bbq-root ../jev-bbq-experiment --count 10000
 """
 from __future__ import annotations
 
@@ -54,8 +54,8 @@ def main() -> None:
     parser.add_argument("--bbq-root", type=Path, default=Path("jev-bbq-experiment"))
     parser.add_argument("--model", default="Qwen/Qwen3-4B")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--count", type=int, default=100)
-    parser.add_argument("--output", type=Path, default=ROOT / "benchmarks" / "results_bbq_100.json")
+    parser.add_argument("--count", type=int, default=10000)
+    parser.add_argument("--output", type=Path, default=ROOT / "benchmarks" / "results_bbq_10000.json")
     args = parser.parse_args()
 
     rows, labels = load_rows(args.bbq_root)

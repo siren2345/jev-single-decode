@@ -144,40 +144,11 @@ The empty thinking block is produced by Qwen3 when `enable_thinking=False`. The 
 
 ## BBQ benchmark
 
-Validation uses [`simonmesmith/jev-bbq-experiment`](https://github.com/simonmesmith/jev-bbq-experiment), with the frozen BBQ passage/question format. Results below use the same 100-question sample (`random.seed(42)`) and Qwen3-4B in FP16 on an RTX 5090.
+Validation uses [`simonmesmith/jev-bbq-experiment`](https://github.com/simonmesmith/jev-bbq-experiment), with the frozen BBQ passage/question format. The latest benchmark uses Qwen3-4B in FP16 on an RTX 5090, the original BBQ state, Qwen chat template, thinking disabled, and one A/B/C decision.
 
-| Prompt variant | Accuracy |
-|---|---:|
-| Current state plus extra output instruction | 80/100 (80%) |
-| **Original BBQ state + Qwen chat template** | **86/100 (86%)** |
-| Answer-format instruction moved to user message | 86/100 (86%) |
-| Asking the model to emit `ans0`/`ans1`/`ans2` directly | 43/100 (43%) |
+### Latest benchmark: 10,000 random questions
 
-Canonical run metrics:
-
-| Metric | Result |
-|---|---:|
-| Accuracy | **86/100 (86%)** |
-| Ambiguous accuracy | 44/50 (88%) |
-| Informative accuracy | 42/50 (84%) |
-| Brier score | 0.2853 |
-| ECE (10 bins) | 0.1462 |
-| Mean confidence | 0.9932 |
-| Mean confidence on incorrect answers | **~1.0000** |
-| Mean latency | 36.6 ms |
-| p50 / p95 latency | 33.0 / 38.4 ms |
-
-The model is accurate enough to make the experiment interesting, but its raw
-three-token softmax is visibly overconfident: incorrect predictions also tend
-to have confidence near 1.0. The returned probability distribution should not
-be treated as calibrated until a separate calibration split and evaluation are
-added.
-
-The reference implementation uses the original BBQ state without adding an extra system instruction. The 58,492-question dataset has not been run in full; this project intentionally stops at sampled validation while the implementation is experimental.
-
-### 10,000-question follow-up
-
-A larger seed-42 random sample was also run with the same canonical prompt and model:
+The sample uses `random.seed(42)` and is not the full 58,492-question dataset.
 
 | Metric | Result |
 |---|---:|
@@ -190,17 +161,16 @@ A larger seed-42 random sample was also run with the same canonical prompt and m
 | Mean latency | 33.5 ms |
 | p50 / p95 latency | 32.3 / 42.3 ms |
 
-The 10,000-question result is more representative than the initial 100-question result, but it is still a random validation sample rather than a full-dataset evaluation. The row-level output is stored in `benchmarks/results_bbq_10000.json`.
+The raw three-token softmax is still overconfident and should not be treated as calibrated until a separate calibration split and evaluation are added. The row-level output is stored in `benchmarks/results_bbq_10000.json`.
 
-Warm GPU measurement after model loading, batch size 1, 12 sequential questions:
+Latency depends on prompt length, GPU, dtype, and model. Batch inference is a planned throughput optimization and should not be assumed to improve accuracy.
 
-| Metric | Measurement |
-|---|---:|
-| Per question | 38 ms |
-| Throughput | 26.6 questions/s |
-| Execution mode | Sequential, no batching yet |
+Run the benchmark with a local BBQ clone:
 
-Latency depends on prompt length, GPU, dtype, and model. Batch inference is a planned throughput optimization; it should not be assumed to improve accuracy.
+```bash
+BBQ_ROOT=/path/to/jev-bbq-experiment \\
+python benchmarks/run_bbq.py --count 10000 --output benchmarks/results_bbq_10000.json
+```
 
 ## Model substitution
 

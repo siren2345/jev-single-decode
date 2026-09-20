@@ -17,6 +17,8 @@ LLAMA_CPP_URL = os.environ.get("LLAMA_CPP_URL", "http://127.0.0.1:8080").rstrip(
 MODEL_NAME = os.environ.get("LLAMA_CPP_MODEL", "")
 HOST = os.environ.get("JEV_HOST", "127.0.0.1")
 PORT = int(os.environ.get("JEV_PORT", "8090"))
+LLAMA_CACHE_PROMPT = os.environ.get("JEV_CACHE_PROMPT", "1").lower() not in {"0", "false", "off", "no"}
+ACCESS_LOG = os.environ.get("JEV_ACCESS_LOG", "0").lower() in {"1", "true", "yes", "on"}
 DEFAULT_STATE = (
     "Answer each question using only its accompanying passage. "
     "If the passage does not determine the answer, choose the corresponding "
@@ -73,6 +75,10 @@ def _llama_choice(messages: list[dict[str, str]]) -> tuple[list[float], dict[str
         "temperature": 0,
         "logprobs": True,
         "top_logprobs": int(os.environ.get("JEV_TOP_LOGPROBS", "50")),
+        # Reuse the common system/chat prefix in llama-server's KV cache.
+        # This matters because one-token decoding still requires full prompt
+        # prefill on every request when caching is disabled.
+        "cache_prompt": LLAMA_CACHE_PROMPT,
         "stream": False,
     }
     request = Request(
@@ -123,6 +129,10 @@ def predict(payload: dict[str, Any]) -> dict[str, Any]:
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "jev-single-decode/llama.cpp"
+
+    def log_message(self, format: str, *args: Any) -> None:
+        if ACCESS_LOG:
+            super().log_message(format, *args)
 
     def _send(self, status: int, body: dict[str, Any]) -> None:
         encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")

@@ -5,6 +5,8 @@ API. The adapter tests whether a typed choice decision can be served by an
 ordinary causal model using prompt prefill and exactly a single output token.
 
 ![Conventional generation repeats decode, while jev-single-decode stops after a single decode](assets/prefill_single_decode_pipeline.png)
+![jev-single-decode benchmark results](assets/jev_single_decode_benchmark.png)
+
 
 > This project is not affiliated with TypeSafe AI. Jev is a trademark of
 > TypeSafe AI.
@@ -120,8 +122,6 @@ llama.cpp remains responsible for model loading, prompt formatting, inference,
 and hardware acceleration.
 
 ## Benchmark
-
-![jev-single-decode benchmark results](assets/jev_single_decode_benchmark.png)
 
 Measured on 10,000 deterministic samples (`seed=42`) from
 [`simonmesmith/jev-bbq-experiment`](https://github.com/simonmesmith/jev-bbq-experiment):

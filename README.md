@@ -1,8 +1,9 @@
 # jev-single-decode
 
 A small llama.cpp-backed HTTP adapter that exposes a Jev-compatible `choice`
-API. The adapter tests whether a typed choice decision can be served by an
-ordinary causal model using prompt prefill and exactly a single output token.
+API for 2 to 26 options. The adapter tests whether a typed choice decision can
+be served by an ordinary causal model using prompt prefill and exactly a single
+output token.
 
 ![Conventional generation repeats decode, while jev-single-decode stops after a single decode](assets/prefill_single_decode_pipeline.png)
 ![jev-single-decode benchmark results](assets/jev_single_decode_benchmark.png)
@@ -20,12 +21,13 @@ ordinary causal model using prompt prefill and exactly a single output token.
 
 The adapter sends a request per question to llama.cpp's OpenAI-compatible
 `/v1/chat/completions` endpoint with `max_tokens=1`. It reads `top_logprobs`
-for the A/B/C answer tokens, renormalizes those three values, and returns
+for the A-Z answer tokens used by the supplied options, renormalizes those
+values, and returns
 `choice`, `probabilities`, and `confidence` while preserving the input
 criteria keys.
 
 This repository does not bundle model weights. Any llama.cpp-compatible model
-can be used, provided it can produce A/B/C as candidates in its first output
+can be used, provided it can produce A-Z as candidates in its first output
 token. Reasoning-oriented models that spend the first token on hidden
 reasoning are not suitable for this endpoint.
 
@@ -33,6 +35,7 @@ reasoning are not suitable for this endpoint.
 
 - Python 3.11+
 - A llama.cpp `llama-server` build
+- Support for `post_sampling_probs` and string `logit_bias` in llama.cpp
 - A GGUF model supported by that build
 - Any compute backend supported by llama.cpp, including CPU-only execution
 
@@ -103,6 +106,10 @@ The response contains the same criteria keys:
   }
 }
 ```
+
+Each Choice requires between 2 and 26 entries in `criteria`. The adapter maps
+them to single-token labels A-Z internally; the original criteria keys are
+preserved in the response.
 
 `score` and `noul` are currently unsupported. The returned probabilities are
 softmax-derived and API-compatible, but they should not be treated as

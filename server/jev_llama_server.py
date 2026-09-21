@@ -2,12 +2,13 @@
 
 The upstream llama.cpp server is expected at LLAMA_CPP_URL (default:
 http://127.0.0.1:8080). This adapter uses /v1/chat/completions with exactly
-a single output token and reads the returned top-logprobs for A/B/C.
+a single output token and reads the returned probabilities for A-Z.
 """
 from __future__ import annotations
 
 import json
 import os
+import string
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -22,57 +23,93 @@ DEFAULT_STATE = (
     "If the passage does not determine the answer, choose the corresponding "
     "uncertainty option."
 )
+CHOICE_LABELS = string.ascii_uppercase
 
 
 def _error(message: str, status: int = 400) -> tuple[int, dict[str, Any]]:
     return status, {"error": {"message": message, "type": "invalid_request_error"}}
 
 
-def _token_letter(token: str) -> str | None:
-    """Return A/B/C only for a token consisting of a single answer letter."""
+def _token_letter(token: str, labels: str) -> str | None:
+    """Return an allowed label for a token containing one answer letter."""
     cleaned = token.strip().replace("▁", " ").replace("Ġ", " ").strip()
-    return cleaned if cleaned in {"A", "B", "C"} else None
+    return cleaned if cleaned in labels else None
 
 
-def _probabilities(logprobs: list[dict[str, Any]]) -> list[float]:
-    """Extract and renormalize A/B/C probabilities from top-logprobs."""
+def _probabilities(logprobs: list[dict[str, Any]], labels: str) -> list[float]:
+    """Extract and renormalize allowed-label probabilities."""
     import math
 
     scores: dict[str, float] = {}
+    probabilities: dict[str, float] = {}
     for item in logprobs:
-        letter = _token_letter(str(item.get("token", "")))
+        letter = _token_letter(str(item.get("token", "")), labels)
         if letter is not None:
-            scores[letter] = max(scores.get(letter, float("-inf")), float(item["logprob"]))
-    missing = [letter for letter in "ABC" if letter not in scores]
+            if "prob" in item:
+                probabilities[letter] = max(
+                    probabilities.get(letter, 0.0), float(item["prob"])
+                )
+            elif "logprob" in item:
+                scores[letter] = max(
+                    scores.get(letter, float("-inf")), float(item["logprob"])
+                )
+    available = probabilities if probabilities else scores
+    missing = [letter for letter in labels if letter not in available]
     if missing:
         raise RuntimeError(
-            "llama.cpp did not return all A/B/C candidates in top_logprobs; "
-            f"missing={','.join(missing)}. Increase JEV_TOP_LOGPROBS."
+            "llama.cpp did not return all choice labels; "
+            f"missing={','.join(missing)}. Use a recent llama.cpp build and "
+            "increase JEV_TOP_LOGPROBS if necessary."
         )
+    if probabilities:
+        values = [probabilities[letter] for letter in labels]
+        total = sum(values)
+        return [value / total for value in values]
     maximum = max(scores.values())
-    values = [math.exp(scores[letter] - maximum) for letter in "ABC"]
+    values = [math.exp(scores[letter] - maximum) for letter in labels]
     total = sum(values)
     return [value / total for value in values]
 
 
-def _question_messages(state: str, instructions: str, criteria: dict[str, Any]) -> list[dict[str, str]]:
+def _question_messages(
+    state: str, instructions: str, criteria: dict[str, Any]
+) -> list[dict[str, str]]:
     options = list(criteria.values())
+    option_lines = "\n".join(
+        f"{CHOICE_LABELS[index]}. {option}" for index, option in enumerate(options)
+    )
     user = (
         f"{instructions}\n\n"
-        f"Options:\nA. {options[0]}\nB. {options[1]}\nC. {options[2]}\n\n"
+        f"Options:\n{option_lines}\n\n"
         "Answer:"
     )
     return [{"role": "system", "content": state}, {"role": "user", "content": user}]
 
 
-def _llama_choice(messages: list[dict[str, str]]) -> tuple[list[float], dict[str, Any]]:
+def _llama_choice(
+    messages: list[dict[str, str]], labels: str
+) -> tuple[list[float], dict[str, Any]]:
+    top_logprobs = max(int(os.environ.get("JEV_TOP_LOGPROBS", "50")), len(labels))
+    grammar = "root ::= " + " | ".join(json.dumps(label) for label in labels)
+    logit_bias = [[label, 100.0] for label in labels]
     payload = {
         "model": MODEL_NAME or "local",
         "messages": messages,
         "max_tokens": 1,
-        "temperature": 0,
+        "temperature": 1,
+        "top_k": 0,
+        "top_p": 1,
+        "min_p": 0,
+        "repeat_penalty": 1,
+        "presence_penalty": 0,
+        "frequency_penalty": 0,
         "logprobs": True,
-        "top_logprobs": int(os.environ.get("JEV_TOP_LOGPROBS", "50")),
+        "top_logprobs": top_logprobs,
+        "post_sampling_probs": True,
+        "min_keep": len(labels),
+        "logit_bias": logit_bias,
+        "grammar": grammar,
+        "seed": 0,
         "stream": False,
     }
     request = Request(
@@ -88,7 +125,8 @@ def _llama_choice(messages: list[dict[str, str]]) -> tuple[list[float], dict[str
         raise RuntimeError(f"llama.cpp request failed: {exc}") from exc
     try:
         content = result["choices"][0]["logprobs"]["content"][0]
-        probabilities = _probabilities(content["top_logprobs"])
+        candidates = content.get("top_probs", content.get("top_logprobs"))
+        probabilities = _probabilities(candidates, labels)
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError("unexpected llama.cpp chat completion logprobs response") from exc
     return probabilities, result
@@ -104,14 +142,26 @@ def predict(payload: dict[str, Any]) -> dict[str, Any]:
     answers: dict[str, Any] = {}
     for question_id, question in questions.items():
         if not isinstance(question, dict) or question.get("type") != "choice":
-            raise ValueError(f"{question_id}: only type=choice is supported; score/noul are currently unsupported")
+            raise ValueError(
+                f"{question_id}: only type=choice is supported; "
+                "score/noul are currently unsupported"
+            )
         instructions = question.get("instructions", question.get("question"))
         criteria = question.get("criteria")
-        if not isinstance(instructions, str) or not isinstance(criteria, dict) or len(criteria) != 3:
-            raise ValueError(f"{question_id}: instructions and exactly three criteria are required")
+        if (
+            not isinstance(instructions, str)
+            or not isinstance(criteria, dict)
+            or not 2 <= len(criteria) <= len(CHOICE_LABELS)
+        ):
+            raise ValueError(
+                f"{question_id}: instructions and 2 to 26 criteria are required"
+            )
         keys = list(criteria)
-        probabilities, _raw = _llama_choice(_question_messages(state, instructions, criteria))
-        index = max(range(3), key=probabilities.__getitem__)
+        labels = CHOICE_LABELS[: len(criteria)]
+        probabilities, _raw = _llama_choice(
+            _question_messages(state, instructions, criteria), labels
+        )
+        index = max(range(len(criteria)), key=probabilities.__getitem__)
         answers[question_id] = {
             "type": "choice",
             "choice": keys[index],
